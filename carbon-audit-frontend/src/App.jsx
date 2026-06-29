@@ -17,7 +17,7 @@ import Emissions from "./pages/admin/Emissions";
 import AddEmission from "./pages/admin/AddEmission";
 import Reports from "./pages/admin/Reports";
 import GenerateReport from "./pages/admin/GenerateReport";
-import Users from "./pages/admin/Users";
+import Users from "./pages/admin/users";
 import AdminProfile from "./pages/admin/Profile";
 import AdminSettings from "./pages/admin/Settings";
 import AddCategory from "./pages/admin/AddCategory";
