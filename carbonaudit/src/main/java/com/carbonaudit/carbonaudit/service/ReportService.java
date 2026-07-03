@@ -9,6 +9,8 @@ public interface ReportService {
 
     Object generateReport(ReportDTO reportDTO);
 
+    Object generateMonthlyReports(String month);
+
     ResponseEntity<byte[]> downloadReport(Long id);
 
     ResponseEntity<byte[]> viewReport(Long id);

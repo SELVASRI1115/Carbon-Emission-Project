@@ -21,10 +21,18 @@ export const generateReport = async (reportData) => {
     return response.data;
 };
 
+export const triggerMonthlyReports = async (month) => {
+    const response = await api.post(
+        `/reports/trigger-monthly${month ? `?month=${month}` : ""}`
+    );
+    return response.data;
+};
+
 const reportService = {
 
     getAllReports,
-    generateReport
+    generateReport,
+    triggerMonthlyReports
 
 };
 

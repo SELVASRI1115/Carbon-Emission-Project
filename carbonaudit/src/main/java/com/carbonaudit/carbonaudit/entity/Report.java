@@ -25,6 +25,8 @@ public class Report {
 
     private LocalDateTime generatedDate;
 
+    private String reportingMonth;
+
     @ManyToOne
     @JoinColumn(name="vendor_id")
     private Vendor vendor;

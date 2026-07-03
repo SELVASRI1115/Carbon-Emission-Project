@@ -51,8 +51,60 @@ public class ReportServiceImpl implements ReportService {
         report.setFilePath(reportDTO.getFilePath());
         report.setGeneratedDate(LocalDateTime.now());
         report.setVendor(vendor);
+        report.setReportingMonth(reportDTO.getReportingMonth());
 
         return reportRepository.save(report);
+    }
+
+    @Override
+    public Object generateMonthlyReports(String month) {
+        String targetMonth;
+        if (month == null || month.trim().isEmpty()) {
+            targetMonth = java.time.LocalDate.now().minusMonths(1)
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
+        } else {
+            targetMonth = month;
+        }
+
+        String formattedMonthYear = targetMonth;
+        try {
+            java.time.YearMonth ym = java.time.YearMonth.parse(targetMonth);
+            formattedMonthYear = ym.getMonth().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH) 
+                    + " " + ym.getYear();
+        } catch (Exception e) {
+            // fallback
+        }
+
+        List<Vendor> vendors = vendorRepository.findAll();
+        java.util.List<Report> generatedReports = new java.util.ArrayList<>();
+
+        for (Vendor vendor : vendors) {
+            List<Emission> emissions = emissionRepository.findByVendor_VendorIdAndReportingMonth(
+                    vendor.getVendorId(), targetMonth);
+
+            if (!emissions.isEmpty()) {
+                final String currentTargetMonth = targetMonth;
+                boolean reportExists = reportRepository.findAll().stream().anyMatch(r -> 
+                    r.getVendor() != null && 
+                    r.getVendor().getVendorId().equals(vendor.getVendorId()) &&
+                    "Monthly".equalsIgnoreCase(r.getReportType()) &&
+                    currentTargetMonth.equals(r.getReportingMonth())
+                );
+
+                if (!reportExists) {
+                    Report report = new Report();
+                    report.setReportName(vendor.getCompanyName() + " - Monthly Report - " + formattedMonthYear);
+                    report.setReportType("Monthly");
+                    report.setReportingMonth(targetMonth);
+                    report.setFilePath("auto-generated");
+                    report.setGeneratedDate(LocalDateTime.now());
+                    report.setVendor(vendor);
+
+                    generatedReports.add(reportRepository.save(report));
+                }
+            }
+        }
+        return generatedReports;
     }
 
     @Override
@@ -130,7 +182,13 @@ public class ReportServiceImpl implements ReportService {
             document.add(new Paragraph(" ")); // Spacer
 
             // Emissions Statistics Summary Cards
-            List<Emission> emissions = emissionRepository.findByVendor_VendorId(vendor != null ? vendor.getVendorId() : 0L);
+            List<Emission> emissions;
+            if (report.getReportingMonth() != null && !report.getReportingMonth().isEmpty()) {
+                emissions = emissionRepository.findByVendor_VendorIdAndReportingMonth(
+                        vendor != null ? vendor.getVendorId() : 0L, report.getReportingMonth());
+            } else {
+                emissions = emissionRepository.findByVendor_VendorId(vendor != null ? vendor.getVendorId() : 0L);
+            }
             double totalEmissions = 0;
             double approvedEmissions = 0;
             double pendingEmissions = 0;

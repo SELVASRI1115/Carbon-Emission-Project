@@ -16,4 +16,6 @@ public class ReportDTO {
 
     private Long vendorId;
 
+    private String reportingMonth;
+
 }

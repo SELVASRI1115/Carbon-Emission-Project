@@ -11,5 +11,7 @@ public interface EmissionRepository extends JpaRepository<Emission,Long> {
 
     List<Emission> findByVendor_VendorId(Long vendorId);
 
+    List<Emission> findByVendor_VendorIdAndReportingMonth(Long vendorId, String reportingMonth);
+
     List<Emission> findByBuyer_VendorId(Long buyerId);
 }

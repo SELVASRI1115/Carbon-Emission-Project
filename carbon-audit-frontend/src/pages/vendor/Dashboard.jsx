@@ -34,6 +34,8 @@ function Dashboard() {
   const [categoriesBreakdown, setCategoriesBreakdown] = useState([]);
   const [emissionsTrend, setEmissionsTrend] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [allEmissions, setAllEmissions] = useState([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -46,20 +48,45 @@ function Dashboard() {
 
       // Query only the logged-in vendor's emissions
       const emissionsList = await emissionService.getMyEmissions();
-      const processed = processEmissionsData(emissionsList);
-      setCategoriesBreakdown(processed.categoryData);
-      setEmissionsTrend(processed.trendData);
+      setAllEmissions(emissionsList || []);
       
-      // Override total carbon emission for this vendor specifically based on their records
-      setDashboard(prev => ({
-        ...prev,
-        totalCarbonEmission: processed.totalCarbon
-      }));
+      filterEmissionsByMonth(emissionsList || [], "");
     } catch (error) {
       console.log(error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterEmissionsByMonth = (emissionsList, month) => {
+    let filtered = emissionsList || [];
+    if (month) {
+      filtered = emissionsList.filter(e => e.reportingMonth === month);
+    }
+    
+    const processed = processEmissionsData(filtered);
+    setCategoriesBreakdown(processed.categoryData);
+    setEmissionsTrend(processed.trendData);
+    
+    setDashboard(prev => ({
+      ...prev,
+      totalCarbonEmission: processed.totalCarbon
+    }));
+  };
+
+  const handleMonthChange = (month) => {
+    setSelectedMonth(month);
+    filterEmissionsByMonth(allEmissions, month);
+  };
+
+  const getUniqueMonths = () => {
+    const months = new Set();
+    allEmissions.forEach(e => {
+      if (e.reportingMonth) {
+        months.add(e.reportingMonth);
+      }
+    });
+    return Array.from(months).sort();
   };
 
   const processEmissionsData = (emissionsList) => {
@@ -101,7 +128,7 @@ function Dashboard() {
         const parts = month.split("-");
         const year = parts[0];
         const m = parseInt(parts[1], 10);
-        const monthNames = ["Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov"];
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         if (m >= 1 && m <= 12) {
           label = `${monthNames[m - 1]} ${year.slice(2)}`;
         }
@@ -146,16 +173,44 @@ function Dashboard() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "6px 12px",
+              padding: "4px 8px",
               borderRadius: "6px",
               border: "1px solid var(--border-color)",
               backgroundColor: "white",
               fontSize: "0.82rem",
               color: "var(--text-muted)",
-              fontWeight: "500"
+              fontWeight: "500",
+              height: "36px"
             }}>
-              <FiCalendar />
-              <span>01 May 2024 - 31 May 2024</span>
+              <FiCalendar style={{ color: "var(--text-muted)" }} />
+              <select
+                value={selectedMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                style={{
+                  border: "none",
+                  outline: "none",
+                  background: "none",
+                  color: "var(--text-main)",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  fontSize: "0.82rem"
+                }}
+              >
+                <option value="">All-Time Data</option>
+                {getUniqueMonths().map(m => {
+                  let label = m;
+                  if (m.includes("-")) {
+                    const parts = m.split("-");
+                    const year = parts[0];
+                    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                    const mIdx = parseInt(parts[1], 10) - 1;
+                    if (mIdx >= 0 && mIdx < 12) {
+                      label = `${monthNames[mIdx]} ${year}`;
+                    }
+                  }
+                  return <option key={m} value={m}>{label}</option>;
+                })}
+              </select>
             </div>
 
             {/* Notification Bell */}

@@ -34,6 +34,8 @@ function Dashboard() {
   const [categoriesBreakdown, setCategoriesBreakdown] = useState([]);
   const [emissionsTrend, setEmissionsTrend] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [allEmissions, setAllEmissions] = useState([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -45,9 +47,9 @@ function Dashboard() {
       setDashboard(summary);
 
       const emissionsList = await emissionService.getAllEmissions();
-      const processed = processEmissionsData(emissionsList);
-      setCategoriesBreakdown(processed.categoryData);
-      setEmissionsTrend(processed.trendData);
+      setAllEmissions(emissionsList || []);
+      
+      filterEmissionsByMonth(emissionsList || [], "");
     } catch (error) {
       console.log(error);
     } finally {
@@ -55,9 +57,40 @@ function Dashboard() {
     }
   };
 
+  const filterEmissionsByMonth = (emissionsList, month) => {
+    let filtered = emissionsList || [];
+    if (month) {
+      filtered = emissionsList.filter(e => e.reportingMonth === month);
+    }
+    
+    const processed = processEmissionsData(filtered);
+    setCategoriesBreakdown(processed.categoryData);
+    setEmissionsTrend(processed.trendData);
+    
+    setDashboard(prev => ({
+      ...prev,
+      totalCarbonEmission: processed.totalCarbon
+    }));
+  };
+
+  const handleMonthChange = (month) => {
+    setSelectedMonth(month);
+    filterEmissionsByMonth(allEmissions, month);
+  };
+
+  const getUniqueMonths = () => {
+    const months = new Set();
+    allEmissions.forEach(e => {
+      if (e.reportingMonth) {
+        months.add(e.reportingMonth);
+      }
+    });
+    return Array.from(months).sort();
+  };
+
   const processEmissionsData = (emissionsList) => {
     if (!emissionsList || emissionsList.length === 0) {
-      return { categoryData: [], trendData: [] };
+      return { categoryData: [], trendData: [], totalCarbon: 0 };
     }
 
     // 1. Group by category
@@ -105,7 +138,7 @@ function Dashboard() {
       };
     });
 
-    return { categoryData, trendData };
+    return { categoryData, trendData, totalCarbon: totalSum };
   };
 
   if (loading) {
@@ -139,16 +172,44 @@ function Dashboard() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "6px 12px",
+              padding: "4px 8px",
               borderRadius: "6px",
               border: "1px solid var(--border-color)",
               backgroundColor: "white",
               fontSize: "0.82rem",
               color: "var(--text-muted)",
-              fontWeight: "500"
+              fontWeight: "500",
+              height: "36px"
             }}>
-              <FiCalendar />
-              <span>Overall Data (All-Time)</span>
+              <FiCalendar style={{ color: "var(--text-muted)" }} />
+              <select
+                value={selectedMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                style={{
+                  border: "none",
+                  outline: "none",
+                  background: "none",
+                  color: "var(--text-main)",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  fontSize: "0.82rem"
+                }}
+              >
+                <option value="">All-Time Data</option>
+                {getUniqueMonths().map(m => {
+                  let label = m;
+                  if (m.includes("-")) {
+                    const parts = m.split("-");
+                    const year = parts[0];
+                    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                    const mIdx = parseInt(parts[1], 10) - 1;
+                    if (mIdx >= 0 && mIdx < 12) {
+                      label = `${monthNames[mIdx]} ${year}`;
+                    }
+                  }
+                  return <option key={m} value={m}>{label}</option>;
+                })}
+              </select>
             </div>
 
             {/* Notification Bell */}

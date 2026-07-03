@@ -16,10 +16,10 @@ import Addvendors from "./pages/admin/Addvendors";
 import Emissions from "./pages/admin/Emissions";
 import AddEmission from "./pages/admin/AddEmission";
 import Reports from "./pages/admin/Reports";
-import GenerateReport from "./pages/admin/GenerateReport";
 import Users from "./pages/admin/users";
 import AdminProfile from "./pages/admin/Profile";
-import AdminSettings from "./pages/admin/Settings";
+import LandingPage from "./pages/LandingPage";
+import Settings from "./pages/Settings";
 import AddCategory from "./pages/admin/AddCategory";
 import Analytics from "./pages/admin/Analytics";
 import AuditVerification from "./pages/admin/AuditVerification";
@@ -30,7 +30,6 @@ import SubmitEmission from "./pages/vendor/SubmitEmission";
 import MyEmissions from "./pages/vendor/MyEmissions";
 import VendorReports from "./pages/vendor/Reports";
 import VendorProfile from "./pages/vendor/Profile";
-import VendorSettings from "./pages/vendor/Settings";
 import VendorAddEmission from "./pages/vendor/AddEmission";
 
 /* Auditor */
@@ -38,7 +37,6 @@ import AuditorDashboard from "./pages/auditor/Dashboard";
 import PendingAudits from "./pages/auditor/PendingAudits";
 import ReviewAudit from "./pages/auditor/ReviewAudit";
 import AuditHistory from "./pages/auditor/AuditHistory";
-import AuditorSettings from "./pages/auditor/Settings";
 
 /* Common */
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -55,7 +53,7 @@ return (
 
 <Route
 path="/"
-element={<Navigate to="/login"/>}
+element={<LandingPage/>}
 />
 
 {/* Authentication */}
@@ -127,15 +125,6 @@ element={
 />
 
 <Route
-path="/admin/generate-report"
-element={
-<ProtectedRoute role="ADMIN">
-<GenerateReport/>
-</ProtectedRoute>
-}
-/>
-
-<Route
 path="/admin/users"
 element={
 <ProtectedRoute role="ADMIN">
@@ -157,13 +146,17 @@ element={
 path="/admin/settings"
 element={
 <ProtectedRoute role="ADMIN">
-<AdminSettings/>
+<Settings/>
 </ProtectedRoute>
 }
 />
 <Route
 path="/admin/add-category"
-element={<AddCategory/>}
+element={
+<ProtectedRoute role="ADMIN">
+<AddCategory/>
+</ProtectedRoute>
+}
 />
 
 <Route
@@ -244,7 +237,7 @@ element={
 path="/vendor/settings"
 element={
 <ProtectedRoute role="VENDOR">
-<VendorSettings/>
+<Settings/>
 </ProtectedRoute>
 }
 />
@@ -297,10 +290,19 @@ element={
 />
 
 <Route
+path="/auditor/reports"
+element={
+<ProtectedRoute role="AUDITOR">
+<Reports/>
+</ProtectedRoute>
+}
+/>
+
+<Route
 path="/auditor/settings"
 element={
 <ProtectedRoute role="AUDITOR">
-<AuditorSettings/>
+<Settings/>
 </ProtectedRoute>
 }
 />

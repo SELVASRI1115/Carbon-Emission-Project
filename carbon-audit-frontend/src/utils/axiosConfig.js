@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "http://localhost:8080/api"
+    : "https://zestful-creativity-production-7065.up.railway.app/api",
   headers: {
     "Content-Type": "application/json",
   },

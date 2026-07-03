@@ -55,6 +55,7 @@ function Sidebar() {
         { name: "Dashboard", path: "/auditor/dashboard", icon: <FiGrid size={18} /> },
         { name: "Pending Audits", path: "/auditor/pending-audits", icon: <FiShield size={18} /> },
         { name: "Audit History", path: "/auditor/audit-history", icon: <FiFileText size={18} /> },
+        { name: "Reports", path: "/auditor/reports", icon: <FiFileText size={18} /> },
         { name: "Analytics", path: "/auditor/analytics", icon: <FiActivity size={18} /> },
         { name: "Settings", path: "/auditor/settings", icon: <FiSettings size={18} /> }
       ];

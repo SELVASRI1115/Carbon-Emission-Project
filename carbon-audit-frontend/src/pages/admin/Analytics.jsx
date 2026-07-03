@@ -20,16 +20,17 @@ import Navbar from "../../components/common/Navbar";
 import Loader from "../../components/common/Loader";
 import { getAllEmissions } from "../../services/emissionService";
 import vendorService from "../../services/vendorService";
-import RealtimeSimulator from "../../components/charts/RealtimeSimulator";
 
 function Analytics() {
-  const [activeTab, setActiveTab] = useState("realtime");
+  const [activeTab, setActiveTab] = useState("trend");
   const [emissions, setEmissions] = useState([]);
+  const [roleFilteredEmissions, setRoleFilteredEmissions] = useState([]);
   const [allEmissions, setAllEmissions] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [myVendor, setMyVendor] = useState(null);
+  const [dateRange, setDateRange] = useState("all");
 
   useEffect(() => {
     loadAnalyticsData();
@@ -56,12 +57,50 @@ function Analytics() {
           filtered = [];
         }
       }
+      setRoleFilteredEmissions(filtered);
       setEmissions(filtered);
     } catch (error) {
       console.log("Error loading analytics data:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDateRangeChange = (range) => {
+    setDateRange(range);
+    
+    if (range === "all") {
+      setEmissions(roleFilteredEmissions);
+      return;
+    }
+    
+    const now = new Date();
+    let cutOffYear = now.getFullYear();
+    let cutOffMonth = now.getMonth();
+    
+    if (range === "3months") {
+      cutOffMonth -= 3;
+    } else if (range === "6months") {
+      cutOffMonth -= 6;
+    } else if (range === "12months") {
+      cutOffMonth -= 12;
+    }
+    
+    while (cutOffMonth < 0) {
+      cutOffMonth += 12;
+      cutOffYear -= 1;
+    }
+    
+    const filtered = roleFilteredEmissions.filter(e => {
+      if (!e.reportingMonth || !e.reportingMonth.includes("-")) return false;
+      const parts = e.reportingMonth.split("-");
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      
+      return (y > cutOffYear) || (y === cutOffYear && m >= cutOffMonth);
+    });
+    
+    setEmissions(filtered);
   };
 
   const getTrendData = () => {
@@ -128,31 +167,40 @@ function Analytics() {
     }).sort((a, b) => b.value - a.value);
   };
 
-  const getGeoData = () => {
-    const map = {};
-    emissions.forEach(e => {
-      let loc = "Unspecified";
-      if (e.vendor?.address) {
-        const parts = e.vendor.address.split(",");
-        loc = parts[parts.length - 1].trim() || e.vendor.address;
-      } else if (e.vendor?.industry) {
-        loc = e.vendor.industry;
-      }
-      const val = Number(e.totalEmission) || 0;
-      map[loc] = (map[loc] || 0) + val;
-    });
-    return Object.keys(map).map(name => ({
-      name,
-      value: Math.round(map[name] * 100) / 100
-    })).sort((a, b) => b.value - a.value);
+  const handleExportDetails = () => {
+    if (emissions.length === 0) {
+      alert("No emissions data available to export.");
+      return;
+    }
+
+    const headers = ["Emission ID", "Category", "Reporting Month", "Activity Data", "Emission Factor", "Total Emission (kg CO2e)", "Vendor Company", "Status"];
+    const rows = emissions.map(e => [
+      e.emissionId,
+      `"${e.category?.categoryName || 'General'}"`,
+      `"${e.reportingMonth || 'N/A'}"`,
+      e.activityData || 0,
+      e.emissionFactor || 0,
+      e.totalEmission || 0,
+      `"${e.vendor?.companyName || 'N/A'}"`,
+      `"${e.status || 'N/A'}"`
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `carbon_emissions_analytics_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const tabs = [
-    { id: "realtime", label: "Real-Time Simulator" },
     { id: "trend", label: "Emissions Trend" },
     { id: "vendor", label: "Vendor Comparison" },
-    { id: "category", label: "Category Breakdown" },
-    { id: "geo", label: "Geographic View" }
+    { id: "category", label: "Category Breakdown" }
   ];
 
   if (loading) {
@@ -185,19 +233,42 @@ function Analytics() {
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                padding: "8px 12px",
+                padding: "4px 8px",
                 borderRadius: "8px",
                 border: "1px solid var(--border-color)",
                 backgroundColor: "white",
                 fontSize: "0.9rem",
                 color: "var(--text-main)",
-                fontWeight: "500"
+                fontWeight: "500",
+                height: "40px"
               }}>
-                <FiCalendar />
-                <span>All-Time Data</span>
+                <FiCalendar style={{ color: "var(--text-muted)" }} />
+                <select
+                  value={dateRange}
+                  onChange={(e) => handleDateRangeChange(e.target.value)}
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    background: "none",
+                    color: "var(--text-main)",
+                    fontWeight: "500",
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                    paddingRight: "10px"
+                  }}
+                >
+                  <option value="all">All-Time Data</option>
+                  <option value="3months">Last 3 Months</option>
+                  <option value="6months">Last 6 Months</option>
+                  <option value="12months">Last 12 Months</option>
+                </select>
               </div>
 
-              <button className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px" }}>
+              <button 
+                onClick={handleExportDetails}
+                className="btn-primary" 
+                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", cursor: "pointer" }}
+              >
                 <FiDownload /> Export Details
               </button>
             </div>
@@ -232,9 +303,7 @@ function Analytics() {
           </div>
 
           {/* Tab Contents */}
-          {activeTab === "realtime" ? (
-            <RealtimeSimulator />
-          ) : emissions.length === 0 ? (
+          {emissions.length === 0 ? (
             <div className="premium-card" style={{ padding: "60px 20px", textAlign: "center", color: "var(--text-muted)" }}>
               <FiActivity size={48} color="var(--accent-color)" style={{ marginBottom: "16px" }} />
               <h3>No Emissions Logged</h3>
@@ -409,47 +478,6 @@ function Analytics() {
                 </div>
               )}
 
-              {activeTab === "geo" && (
-                <div className="premium-card animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                  <div>
-                    <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--text-main)", marginBottom: "4px" }}>
-                      Emissions Geographic Location / Area
-                    </h3>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>kg CO₂e</span>
-                  </div>
-
-                  <div style={{ height: "380px", width: "100%" }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={getGeoData()} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
-                        <XAxis 
-                          type="number"
-                          tickLine={false} 
-                          axisLine={false} 
-                          tick={{ fill: "var(--text-muted)", fontSize: 12 }} 
-                        />
-                        <YAxis 
-                          dataKey="name" 
-                          type="category"
-                          tickLine={false} 
-                          axisLine={false} 
-                          tick={{ fill: "var(--text-muted)", fontSize: 12, fontWeight: "500" }} 
-                        />
-                        <Tooltip 
-                          formatter={(value) => [`${value.toLocaleString()} kg CO2e`, 'Emissions']}
-                          contentStyle={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-color)", borderRadius: "8px" }}
-                        />
-                        <Bar 
-                          dataKey="value" 
-                          fill="#8b5cf6" 
-                          radius={[0, 4, 4, 0]} 
-                          maxBarSize={30}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>

@@ -29,6 +29,12 @@ public class ReportController {
                 reportService.generateReport(reportDTO));
     }
 
+    @PostMapping("/trigger-monthly")
+    public ResponseEntity<?> triggerMonthlyReports(@RequestParam(required = false) String month) {
+        return ResponseEntity.ok(
+                reportService.generateMonthlyReports(month));
+    }
+
     @GetMapping("/download/{id}")
     public ResponseEntity<byte[]> downloadReport(@PathVariable Long id) {
         return reportService.downloadReport(id);

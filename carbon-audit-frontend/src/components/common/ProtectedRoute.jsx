@@ -13,7 +13,7 @@ function ProtectedRoute({
   if (!user) {
 
     return (
-      <Navigate to="/" />
+      <Navigate to="/login" />
     );
   }
 
